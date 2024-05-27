@@ -33,6 +33,24 @@ class OVNSubordinate(OVN, AuxiliarySubordinateApplication):
         """
         OVNSubordinate._validate_ovn_support(self.workload_version)
 
+    def upgrade_plan_sanity_checks(
+        self, target: OpenStackRelease, units: Optional[list[Unit]]
+    ) -> None:
+        """Run sanity checks before generating upgrade plan.
+
+        :param target: OpenStack release as target to upgrade.
+        :type target: OpenStackRelease
+        :param units: Units to generate upgrade plan, defaults to None
+        :type units: Optional[list[Unit]], optional
+        :raises ApplicationError: When application is wrongly configured.
+        :raises HaltUpgradePlanGeneration: When the application halt the upgrade plan generation.
+        :raises MismatchedOpenStackVersions: When the units of the app are running different
+                                             OpenStack versions.
+        """
+        self._check_ovn_support()
+        self._check_version_pinning()
+        super().upgrade_plan_sanity_checks(target, units)
+
 
 @AppFactory.register_application(["hacluster"])
 class HACluster(AuxiliarySubordinateApplication):

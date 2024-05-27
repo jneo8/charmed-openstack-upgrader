@@ -19,9 +19,9 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, List
 
 from juju.action import Action
 from juju.application import Application as JujuApplication
@@ -121,6 +121,21 @@ class Machine:
     apps_charms: tuple[tuple[str, str], ...]
     az: Optional[str] = None  # simple deployments may not have azs
 
+@dataclass(frozen=True)
+class SubordinateUnit:
+    """Representation of a single unit of subordinate unit."""
+
+    name: str
+    workload_version: str
+
+    def __repr__(self) -> str:
+        """App representation.
+
+        :return: Name of the application
+        :rtype: str
+        """
+        return self.name
+
 
 @dataclass(frozen=True)
 class Unit:
@@ -129,6 +144,7 @@ class Unit:
     name: str
     machine: Machine
     workload_version: str
+    subordinates: List[SubordinateUnit] = field(compare=False)
 
     def __repr__(self) -> str:
         """App representation.
@@ -362,7 +378,15 @@ class Model:
                 series=_convert_base_to_series(status.base),
                 subordinate_to=status.subordinate_to,
                 units={
-                    name: Unit(name, machines[unit.machine], unit.workload_version)
+                    name: Unit(
+                        name,
+                        machines[unit.machine],
+                        unit.workload_version,
+                        [
+                            SubordinateUnit(subordinate_name, subordinate.workload_version)
+                            for subordinate_name, subordinate in unit.subordinates.items()
+                        ],
+                    )
                     for name, unit in status.units.items()
                 },
                 workload_version=status.workload_version,

@@ -484,9 +484,15 @@ def _separate_hypervisors_apps(
     _, nova_compute_machines = _get_nova_compute_units_and_machines(apps)
     for app in apps:
         if (
-            any(unit.machine in nova_compute_machines for unit in app.units.values())
-            and app.charm != "ceph-osd"
-            and app.is_subordinate is False
+            (
+                any(unit.machine in nova_compute_machines for unit in app.units.values())
+                and app.charm != "ceph-osd"
+                and app.is_subordinate is False
+            )
+            or (
+                "nova-compute" in app.subordinate_to
+                and app.charm == "ovn-chassis"
+            )
         ):
             hypervisor_apps.append(app)
         else:

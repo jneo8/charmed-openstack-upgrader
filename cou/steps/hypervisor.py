@@ -159,6 +159,14 @@ class HypervisorUpgradePlanner:
                 az = unit.machine.az or ""
                 azs[az].app_units[app.name].append(unit)
 
+                for subordinate_app in self.apps:
+                    if app.name in subordinate_app.subordinate_to:
+                        for subordinate_unit in unit.subordinates:
+                            # NOTE(jneo8): There is no clean way to get subordinate app's units.
+                            #              So we only compare the unit name and app name here.
+                            if subordinate_app.name in subordinate_unit.name:
+                                azs[az].app_units[subordinate_app.name].append(subordinate_unit)
+
         return azs
 
     def _upgrade_plan_sanity_checks(
@@ -292,6 +300,7 @@ class HypervisorUpgradePlanner:
         plan = UpgradePlan("Upgrading all applications deployed on machines with hypervisor.")
         for az, group in self.get_azs(target).items():
             units = list(chain(*group.app_units.values()))
+
             hypervisor_plan = HypervisorUpgradePlan(
                 f"Upgrade plan for {units} in '{group.name}' to '{target}'"
             )
@@ -303,6 +312,7 @@ class HypervisorUpgradePlanner:
             # pre upgrade steps
             logger.debug("generating pre-upgrade steps for %s AZ", az)
             hypervisor_plan.add_steps(self._generate_pre_upgrade_steps(target, group))
+
 
             # upgrade steps
             logger.debug("generating upgrade steps for %s AZ", az)
